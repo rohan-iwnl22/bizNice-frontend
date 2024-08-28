@@ -1,9 +1,9 @@
 import React, { useContext } from "react";
 import { Link } from "react-router-dom";
-import { Auth } from "../Context/Auth";
+import { Auth } from "../Context/Auth"; // Ensure correct import path and context name
 
 const Header = () => {
-  const { user, logout } = useContext(Auth);
+  const { user, logout, seller } = useContext(Auth);
 
   return (
     <header className="w-full bg-black text-white fixed top-0 z-50 shadow-lg">
@@ -11,9 +11,9 @@ const Header = () => {
         <div className="text-2xl font-bold">
           <Link to="/">BizNiche</Link>
         </div>
-        <nav className="flex space-x-4">
+        <nav className="flex space-x-4 items-center">
           {user && (
-            <span className="text-warning">Logged in as {user?.name}</span>
+            <span className="text-warning">Logged in as {user.name}</span>
           )}
           <Link to="/cart">
             <button className="h-10 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded transition duration-300">
@@ -21,12 +21,27 @@ const Header = () => {
             </button>
           </Link>
           {user ? (
-            <button
-              className="h-10 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded transition duration-300"
-              onClick={logout}
-            >
-              Logout
-            </button>
+            <>
+              {seller ? (
+                <Link to="/post-products">
+                  <button className="h-10 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded transition duration-300">
+                    Post Your Products
+                  </button>
+                </Link>
+              ) : (
+                <Link to="/seller">
+                  <button className="h-10 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded transition duration-300">
+                    Become a Seller
+                  </button>
+                </Link>
+              )}
+              <button
+                className="h-10 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded transition duration-300"
+                onClick={logout}
+              >
+                Logout
+              </button>
+            </>
           ) : (
             <>
               <Link to="/register">

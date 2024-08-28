@@ -7,6 +7,7 @@ export const Auth = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [seller, setSeller] = useState(null);
   const [registerInfo, setRegisterInfo] = useState({
     name: "",
     email: "",
@@ -16,7 +17,7 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   const [isRegisterLoading, setIsRegisterLoading] = useState(false);
-  const [resgistrationError, setRegistrationError] = useState(null);
+  const [registrationError, setRegistrationError] = useState(null);
 
   const updateRegisterInfo = useCallback((info) => {
     setRegisterInfo(info);
@@ -25,7 +26,6 @@ export const AuthProvider = ({ children }) => {
   const register = useCallback(
     async (e) => {
       e.preventDefault();
-
       setIsRegisterLoading(true);
       setRegistrationError(null);
 
@@ -38,14 +38,13 @@ export const AuthProvider = ({ children }) => {
         setIsRegisterLoading(false);
 
         if (response.data.error) {
-          // Use response.data instead of response
-          toast.error(response.data.error); // Use response.data.error instead of response.error
-          return setRegistrationError(response.data.error); // Use response.data.error instead of response
+          toast.error(response.data.error);
+          return setRegistrationError(response.data.error);
         }
 
-        toast.success(response.data.message); // Use response.data.message instead of response.message
-        localStorage.setItem("User", JSON.stringify(response.data)); // Store with consistent key name
-        setUser(response.data); // Set user with consistent key name
+        toast.success(response.data.message);
+        localStorage.setItem("User", JSON.stringify(response.data));
+        setUser(response.data);
         navigate("/");
       } catch (error) {
         setIsRegisterLoading(false);
@@ -62,10 +61,15 @@ export const AuthProvider = ({ children }) => {
   });
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("User"); // Use consistent key name
+    const storedUser = localStorage.getItem("User");
+    const storedSeller = localStorage.getItem("Seller");
+
     if (storedUser) {
       setUser(JSON.parse(storedUser));
-      console.log("Stored user:", storedUser); // Log the raw user data
+    }
+
+    if (storedSeller) {
+      setSeller(JSON.parse(storedSeller)); // Ensure parsing and setting is done correctly
     }
   }, []);
 
@@ -81,7 +85,7 @@ export const AuthProvider = ({ children }) => {
       e.preventDefault();
 
       setIsLoginLoading(true);
-      setRegistrationError(null);
+      setLoginError(null);
 
       try {
         const response = await axios.post(
@@ -92,30 +96,83 @@ export const AuthProvider = ({ children }) => {
         setIsLoginLoading(false);
 
         if (response.data.error) {
-          toast.error(response.data.error); // Display error message
-          setRegistrationError(response.data.error);
+          toast.error(response.data.error);
+          setLoginError(response.data.error);
           return;
         }
 
-        toast.success("Successfully Logged In"); // Show success message
+        toast.success("Successfully Logged In");
 
-        localStorage.setItem("User", JSON.stringify(response.data)); // Save user data
-        setUser(response.data); // Update user state
-        navigate("/"); // Redirect to home page
+        localStorage.setItem("User", JSON.stringify(response.data));
+        setUser(response.data);
+
+        // Set seller info if available
+        if (response.data.seller) {
+          localStorage.setItem("Seller", JSON.stringify(response.data.seller));
+          setSeller(response.data.seller);
+        } else {
+          localStorage.removeItem("Seller");
+          setSeller(null);
+        }
+
+        navigate("/");
       } catch (error) {
         setIsLoginLoading(false);
-        toast.error("An error occurred. Please try again."); // Generic error message
-        console.error("Login error:", error); // Log error for debugging
+        toast.error("An error occurred. Please try again.");
+        console.error("Login error:", error);
       }
     },
-    [loginInfo, navigate] // Added navigate to dependencies
+    [loginInfo, navigate]
   );
 
-  const logout = useCallback(async (e) => {
+  const logout = useCallback(async () => {
     localStorage.removeItem("User");
+    localStorage.removeItem("Seller");
     setUser(null);
+    setSeller(null);
     toast.success("Logged Out Successfully");
+    navigate("/"); // Redirect to home page or login page
+  }, [navigate]);
+
+  const [sellerInfo, setSellerInfo] = useState({
+    store_name: "",
+    store_description: "",
+    contact_info: "",
   });
+
+  const updateSellerInfo = useCallback((info) => {
+    setSellerInfo(info);
+  });
+
+  const [sellerLoading, setSellerLoading] = useState(false);
+
+  const registerSeller = useCallback(
+    async (e) => {
+      e.preventDefault();
+
+      setSellerLoading(true);
+      try {
+        const response = await axios.post(
+          "http://localhost:3030/api/seller/become-a-seller",
+          sellerInfo,
+          {
+            headers: { Authorization: `Bearer ${user.token}` },
+          }
+        );
+        setSellerLoading(false);
+        toast.success(response.data.message);
+        localStorage.setItem("Seller", JSON.stringify(response.data));
+        setSeller(response.data.seller); // Update seller state
+        navigate("/dashboard");
+      } catch (error) {
+        setSellerLoading(false);
+        toast.error(
+          error.response?.data.message || "An unknown error occurred."
+        );
+      }
+    },
+    [sellerInfo, user, navigate]
+  );
 
   return (
     <Auth.Provider
@@ -130,6 +187,11 @@ export const AuthProvider = ({ children }) => {
         isLoginLoading,
         login,
         logout,
+        updateSellerInfo,
+        sellerInfo,
+        registerSeller,
+        setSellerLoading,
+        seller,
       }}
     >
       {children}
