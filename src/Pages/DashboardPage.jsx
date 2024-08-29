@@ -3,6 +3,7 @@ import { Auth } from "../Context/Auth";
 
 const DashboardPage = () => {
   const { user } = useContext(Auth);
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
@@ -54,13 +55,10 @@ const DashboardPage = () => {
           </button>
         </div>
       </aside>
-
-      {/* Main Content */}
       <div className="flex-grow p-8 overflow-y-auto">
-        {/* Header */}
         <header className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-semibold text-gray-900">
-            Welcome back, {user.name} 
+            Welcome back, {user?.name}
           </h1>
           <button className="py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded transition duration-300">
             Create New

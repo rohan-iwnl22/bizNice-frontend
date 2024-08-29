@@ -9,6 +9,7 @@ import LoginPage from "./Pages/LoginPage";
 import RegistrationPage from "./Pages/RegistrationPage";
 import SellerRegistration from "./Pages/SellerRegistration";
 import ProfilePage from "./Pages/ProfilePage";
+import PostProduct from "./Pages/PostProduct";
 
 const App = () => {
   return (
@@ -24,6 +25,7 @@ const App = () => {
           <Route path="/cart" element={<CartPage />} />
           <Route path="/seller" element={<SellerRegistration />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/post-products" element={<PostProduct />} />
         </Routes>
       </main>
       <Footer />

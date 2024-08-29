@@ -69,7 +69,8 @@ export const AuthProvider = ({ children }) => {
     }
 
     if (storedSeller) {
-      setSeller(JSON.parse(storedSeller)); // Ensure parsing and setting is done correctly
+      setSeller(JSON.parse(storedSeller));
+      // Ensure parsing and setting is done correctly
     }
   }, []);
 
@@ -174,6 +175,142 @@ export const AuthProvider = ({ children }) => {
     [sellerInfo, user, navigate]
   );
 
+  const [product, setProduct] = useState({
+    category_name: "",
+    name: "",
+    description: "",
+    price: "",
+    stock: "",
+    images: [],
+  });
+
+  const [previewImages, setPreviewImages] = useState([]);
+
+  const handleInputChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setProduct((prev) => ({ ...prev, [name]: value }));
+  }, []);
+
+  const handleImageChange = useCallback((e) => {
+    const files = Array.from(e.target.files);
+    const filePreviews = files.map((file) => URL.createObjectURL(file));
+    setPreviewImages(filePreviews);
+    setProduct((prev) => ({ ...prev, images: files }));
+  }, []);
+
+  const [isuploading, setIsUploading] = useState(false);
+
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+
+      console.log(product);
+
+      if (!user || !user.token) {
+        toast.error("User not authenticated.");
+        return;
+      }
+
+      const validateProductData = (data) => {
+        const {
+          category_name,
+          name,
+          description,
+          price,
+          stock,
+          images,
+          seller_id,
+        } = data;
+        return (
+          category_name &&
+          name &&
+          description &&
+          price &&
+          stock &&
+          images &&
+          Array.isArray(images) &&
+          images.length > 0 &&
+          seller_id
+        );
+      };
+
+      if (
+        !validateProductData({
+          ...product,
+          seller_id: seller.seller_id, // Include seller_id in the validation
+        })
+      ) {
+        toast.error(
+          "Please make sure all fields are filled, at least one image is provided, and seller ID is included."
+        );
+        setIsUploading(false);
+        return;
+      }
+
+      const formData = new FormData();
+      product.images.forEach((image) => formData.append("images", image));
+
+      try {
+        setIsUploading(true);
+        const uploadResponse = await axios.post(
+          "http://localhost:3030/upload",
+          formData
+        );
+
+        if (uploadResponse.status === 200) {
+          const imageUrls = uploadResponse.data.imageUrls;
+          const imageUrlsString = Array.isArray(imageUrls)
+            ? imageUrls.join(",")
+            : "";
+
+          const productData = {
+            category_name: product.category_name,
+            name: product.name,
+            description: product.description,
+            price: product.price,
+            stock: product.stock,
+            image_url: imageUrlsString,
+            seller_id: seller.seller_id,
+          };
+
+          const productResponse = await axios.post(
+            "http://localhost:3030/api/product/post",
+            productData,
+            {
+              headers: { Authorization: `Bearer ${user.token}` },
+            }
+          );
+
+          setIsUploading(false);
+          if (productResponse.status === 200) {
+            toast.success("Product Created Successfully!");
+            setProduct({
+              category_name: "",
+              name: "",
+              description: "",
+              price: "",
+              stock: "",
+              images: [],
+            });
+            setPreviewImages([]);
+            navigate("/");
+          } else {
+            toast.error(
+              productResponse.data.message || "Failed to create product"
+            );
+          }
+        } else {
+          toast.error(uploadResponse.data.message || "Failed to upload images");
+        }
+      } catch (error) {
+        setIsUploading(false);
+        console.error("Error Response:", error.response);
+        toast.error(`Error: ${error.response?.data?.message || error.message}`);
+      }
+    },
+    [product, user, navigate]
+  );
+
   return (
     <Auth.Provider
       value={{
@@ -192,6 +329,12 @@ export const AuthProvider = ({ children }) => {
         registerSeller,
         setSellerLoading,
         seller,
+        product,
+        previewImages,
+        handleInputChange,
+        handleImageChange,
+        handleSubmit,
+        isuploading,
       }}
     >
       {children}
