@@ -107,6 +107,11 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("User", JSON.stringify(response.data));
         setUser(response.data);
 
+        if (response.data.user) {
+          localStorage.setItem("User", JSON.stringify(response.data.user));
+          setUser(response.data.user);
+        }
+
         // Set seller info if available
         if (response.data.seller) {
           localStorage.setItem("Seller", JSON.stringify(response.data.seller));

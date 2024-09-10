@@ -7,14 +7,17 @@ import { BrowserRouter as Router } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import { CartProvider } from "./Context/CartContext.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <Router>
-      <AuthProvider>
-        <App />
-        <Toaster />
-      </AuthProvider>
+      <CartProvider>
+        <AuthProvider>
+          <App />
+          <Toaster />
+        </AuthProvider>
+      </CartProvider>
     </Router>
   </StrictMode>
 );

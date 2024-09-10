@@ -21,21 +21,6 @@ const PostProduct = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-700">
-              Category
-            </label>
-            <input
-              type="text"
-              name="category_name"
-              value={product.category_name}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              placeholder="e.g., Electronics"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block mb-2 text-sm font-medium text-gray-700">
               Product Name
             </label>
             <input
@@ -45,6 +30,20 @@ const PostProduct = () => {
               onChange={handleInputChange}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
               placeholder="e.g., Wireless Earbuds"
+              required
+            />
+          </div>
+          <div>
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              Category
+            </label>
+            <input
+              type="text"
+              name="category_name"
+              value={product.category_name}
+              onChange={handleInputChange}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="e.g., Electronics"
               required
             />
           </div>

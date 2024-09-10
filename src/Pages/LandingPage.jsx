@@ -1,17 +1,32 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import axios from "axios";
 import Slider from "react-slick";
+import { useCart } from "../Context/CartContext";
+import toast from "react-hot-toast";
+import { Auth } from "../Context/Auth";
 
 const ProductList = () => {
+  const { user } = useContext(Auth);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { addToCart } = useCart(); 
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const response = await axios.get("http://localhost:3030/api/product/");
         setProducts(response.data.products || []);
+
+        // Extract unique categories from products
+        const uniqueCategories = [
+          ...new Set(
+            response.data.products.map((product) => product.category_name)
+          ),
+        ];
+        setCategories(["All", ...uniqueCategories]);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -22,11 +37,27 @@ const ProductList = () => {
     fetchProducts();
   }, []);
 
+  const handleClick = (product) => {
+    if (!user) {
+      return toast.error("Please Login First");
+    } else {
+      addToCart({
+        id: product.product_id,
+        name: product.name,
+        price: parseFloat(product.price),
+      });
+    }
+  };
+
+  const handleCategoryChange = (e) => {
+    setSelectedCategory(e.target.value);
+  };
+
   if (loading) return <div className="text-center text-2xl">Loading...</div>;
   if (error)
     return (
       <div className="h-screen flex justify-center items-center text-center text-2xl text-red-500">
-        No Products to ShowCase Come Back Later
+        No Products to Showcase. Come Back Later.
       </div>
     );
 
@@ -39,14 +70,44 @@ const ProductList = () => {
     arrows: true,
   };
 
+  // Filter products based on selected category
+  const filteredProducts =
+    selectedCategory === "All"
+      ? products
+      : products.filter(
+          (product) => product.category_name === selectedCategory
+        );
+
   return (
     <div className="min-h-screen bg-gray-100 py-10">
       <div className="container mx-auto px-4">
-        <h1 className="text-4xl font-bold text-center text-gray-800 mb-10">
-          Our Products
-        </h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {products.map((product) => {
+        <div className="flex justify-between items-center mb-10">
+          <h1
+            className="text-4xl font-extrabold text-gray-800 font-serif"
+            style={{ fontFamily: "Roboto Condensed" }}
+          >
+            Our Products
+          </h1>
+          <div>
+            <select
+              value={selectedCategory}
+              onChange={handleCategoryChange}
+              className="bg-white border border-gray-300 text-gray-800 py-2 px-4 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {categories.map((category, index) => (
+                <option key={index} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"
+          style={{ fontFamily: "Nunito" }}
+        >
+          {filteredProducts.map((product) => {
             const imageUrls = product.image_url.split(",");
 
             return (
@@ -85,7 +146,10 @@ const ProductList = () => {
                   <p className="text-gray-600 mb-4">
                     Category: {product.category_name}
                   </p>
-                  <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded">
+                  <button
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded"
+                    onClick={() => handleClick(product)} // Pass product to handleClick
+                  >
                     Add to Cart
                   </button>
                 </div>

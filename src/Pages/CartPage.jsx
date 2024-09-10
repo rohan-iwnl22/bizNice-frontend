@@ -1,26 +1,13 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
+import { useCart } from "../Context/CartContext"; 
+
 
 const CartPage = () => {
-  const [cartItems, setCartItems] = useState([
-    { id: 1, name: "Wireless Earbuds", price: 79.99, quantity: 1 },
-    { id: 2, name: "Smart Watch", price: 199.99, quantity: 1 },
-  ]);
-
-  const updateQuantity = (id, newQuantity) => {
-    setCartItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === id ? { ...item, quantity: Math.max(1, newQuantity) } : item
-      )
-    );
-  };
-
-  const removeItem = (id) => {
-    setCartItems((prevItems) => prevItems.filter((item) => item.id !== id));
-  };
+  const { cartItems, updateQuantity, removeItem } = useCart(); // Get cart items and methods
 
   const total = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => sum + Number(item.price) * item.quantity,
     0
   );
 

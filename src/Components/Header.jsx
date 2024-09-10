@@ -8,7 +8,7 @@ const Header = () => {
   return (
     <header className="w-full bg-black text-white fixed top-0 z-50 shadow-lg">
       <div className="container mx-auto flex items-center justify-between py-4 px-6">
-        <div className="text-2xl font-bold">
+        <div className="text-4xl font-bold font-mono">
           <Link to="/">BizNiche</Link>
         </div>
         <nav className="flex space-x-4 items-center">
