@@ -1,15 +1,121 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import { useCart } from "../Context/CartContext"; 
-
+import { Link, useNavigate } from "react-router-dom";
+import { useCart } from "../Context/CartContext";
+import toast from "react-hot-toast";
+import axios from "axios";
 
 const CartPage = () => {
-  const { cartItems, updateQuantity, removeItem } = useCart(); // Get cart items and methods
+  const { cartItems, updateQuantity, removeItem, clearCart } = useCart(); // Added clearCart
+  const navigate = useNavigate();
 
   const total = cartItems.reduce(
     (sum, item) => sum + Number(item.price) * item.quantity,
     0
   );
+
+  const handleCheckout = async (e) => {
+    e.preventDefault(); // Prevent default form submission
+
+    try {
+      if (cartItems.length === 0) {
+        return toast.error("Your Cart is Empty");
+      }
+
+      const token = JSON.parse(localStorage.getItem("User"))?.token;
+
+      if (!token) {
+        return toast.error("User not authenticated");
+      }
+
+      console.log("Cart Items:", cartItems);
+
+      const orderData = cartItems.map((item) => ({
+        product_id: item.id,
+        quantity: item.quantity,
+      }));
+
+      console.log("Order Data to be sent:", orderData); // Verify data before sending
+
+      const response = await axios.post(
+        "http://localhost:3030/api/order",
+        {
+          items: orderData,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // console.log(response);
+      // console.log(response.razorpay_signature);
+      const { razorpayOrderId } = response.data;
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Ensure this is correctly set
+        amount: total * 100,
+        currency: "INR",
+        name: "BizNiche",
+        description: "Lorem ipsum dolor sit amet",
+        order_id: razorpayOrderId,
+        handler: async function (response) {
+          const { razorpay_payment_id, razorpay_order_id, razorpay_signature } =
+            response;
+          // console.log("Payment Response: ", response);
+          await verifyPayment(
+            razorpay_order_id,
+            razorpay_payment_id,
+            razorpay_signature
+          );
+        },
+        prefill: {
+          name: "Rohan Prakasan",
+          email: "bizNiche.feedback@gmail.com",
+          contact: "9999999999",
+        },
+        theme: {
+          color: "#68D89B",
+        },
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
+    } catch (error) {
+      console.log("Error during checkout", error);
+      toast.error(`${error.response?.data.message}`);
+    }
+  };
+
+  const verifyPayment = async (order_id, payment_id, signature) => {
+    try {
+      const token = JSON.parse(localStorage.getItem("User"))?.token; // Make sure token is available here
+      const response = await axios.post(
+        "http://localhost:3030/api/order/verify",
+        {
+          razorpay_order_id: order_id,
+          razorpay_payment_id: payment_id,
+          razorpay_signature: signature,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Include the token for payment verification
+          },
+        }
+      );
+      // console.log("Verify Payment Response", response.data);
+      if (response.data.message === "Payment Verified") {
+        toast.success("Payment Successful! Order Placed");
+        clearCart();
+        navigate("/");
+      } else {
+        toast.error("Payment verification failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Payment verification failed:", error);
+      toast.error(`${error.response?.data.message}`);
+    }
+  };
 
   return (
     <main className="flex-1 container mx-auto px-4 py-8">
@@ -43,7 +149,7 @@ const CartPage = () => {
                     type="number"
                     value={item.quantity}
                     onChange={(e) =>
-                      updateQuantity(item.id, parseInt(e.target.value))
+                      updateQuantity(item.id, parseInt(e.target.value, 10))
                     }
                     className="w-16 text-center border rounded py-1"
                   />
@@ -67,7 +173,10 @@ const CartPage = () => {
             <h2>Total:</h2>
             <p>${total.toFixed(2)}</p>
           </div>
-          <button className="w-full mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+          <button
+            className="w-full mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            onClick={handleCheckout}
+          >
             Proceed to Checkout
           </button>
         </div>

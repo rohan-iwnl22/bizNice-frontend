@@ -12,19 +12,24 @@ const ProductList = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { addToCart } = useCart(); 
+  const { addToCart } = useCart();
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const response = await axios.get("http://localhost:3030/api/product/");
-        setProducts(response.data.products || []);
+        console.log(response.data);
 
-        // Extract unique categories from products
+        // Filter out products with stock 0
+        const filteredProducts = response.data.products.filter(
+          (product) => product.stock > 0
+        );
+
+        setProducts(filteredProducts || []);
+
+        // Extract unique categories from filtered products
         const uniqueCategories = [
-          ...new Set(
-            response.data.products.map((product) => product.category_name)
-          ),
+          ...new Set(filteredProducts.map((product) => product.category_name)),
         ];
         setCategories(["All", ...uniqueCategories]);
       } catch (err) {
