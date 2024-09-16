@@ -1,8 +1,129 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Auth } from "../Context/Auth";
+import axios from "axios";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { Pie } from "react-chartjs-2";
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 const DashboardPage = () => {
   const { user } = useContext(Auth);
+  const [totalPriceSum, setTotalPriceSum] = useState(0);
+  const [buyerNames, setBuyerNames] = useState({});
+  const [count, setCount] = useState(0);
+  const [totalOrder, setTotalOrder] = useState(0);
+  const [totalBuyer, setTotalBuyer] = useState(0);
+  const [orders, setOrders] = useState([]); // State to store fetched orders
+
+  // State for chart data
+  const [chartData, setChartData] = useState({
+    labels: [],
+    datasets: [
+      {
+        label: "Total Price by Category",
+        data: [],
+        backgroundColor: [],
+        borderColor: [],
+        borderWidth: 1,
+      },
+    ],
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const storedUser = localStorage.getItem("User");
+      const token = storedUser ? JSON.parse(storedUser).token : null;
+
+      if (!token) {
+        console.error("No token found");
+        return;
+      }
+
+      try {
+        const countResponse = await axios.get(
+          "http://localhost:3030/api/product/count",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setCount(countResponse.data.items);
+
+        const orderResponse = await axios.get(
+          "http://localhost:3030/api/order/all",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const orders = orderResponse.data.orders;
+
+        const categoryPriceMap = orders.reduce((cat, order) => {
+          if (!cat[order.category_name]) {
+            cat[order.category_name] = parseFloat(order.total_price);
+          } else {
+            cat[order.category_name] += parseFloat(order.total_price);
+          }
+          return cat;
+        }, {});
+
+        setOrders(orders); // Store the fetched orders in state
+        setTotalOrder(orders.length);
+
+        const buyerPriceMap = orders.reduce((acc, order) => {
+          if (!acc[order.buyer_name]) {
+            acc[order.buyer_name] = parseFloat(order.total_price);
+          } else {
+            acc[order.buyer_name] += parseFloat(order.total_price);
+          }
+          return acc;
+        }, {});
+
+        setBuyerNames(buyerPriceMap);
+        setTotalBuyer(Object.keys(buyerPriceMap).length);
+
+        const sum = orders.reduce(
+          (acc, order) => acc + parseFloat(order.total_price),
+          0
+        );
+        setTotalPriceSum(sum);
+
+        // Transform categoryPriceMap into chart data format
+        const labels = Object.keys(categoryPriceMap);
+        const data = Object.values(categoryPriceMap);
+
+        // Generate colors for chart
+        const backgroundColor = labels.map(
+          (_, index) =>
+            `rgba(${(index * 50) % 255}, ${(index * 100) % 255}, ${
+              (index * 150) % 255
+            }, 0.2)`
+        );
+        const borderColor = labels.map(
+          (_, index) =>
+            `rgba(${(index * 50) % 255}, ${(index * 100) % 255}, ${
+              (index * 150) % 255
+            }, 1)`
+        );
+
+        setChartData({
+          labels,
+          datasets: [
+            {
+              label: "Total Price by Category",
+              data,
+              backgroundColor,
+              borderColor,
+              borderWidth: 1,
+            },
+          ],
+        });
+      } catch (error) {
+        console.error("Error fetching data:", error.message);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -65,34 +186,38 @@ const DashboardPage = () => {
           </button>
         </header>
 
-        {/* Dashboard Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           <div className="bg-white p-6 rounded-lg shadow-lg">
             <h2 className="text-xl font-semibold text-gray-800">Total Sales</h2>
-            <p className="text-3xl font-bold text-blue-600 mt-4">$24,500</p>
-            <p className="text-sm text-gray-500 mt-2">+12% from last month</p>
+            <p className="text-3xl font-bold text-blue-600 mt-4">
+              <i className="fa fa-inr" />
+              {totalPriceSum}
+            </p>
           </div>
 
           <div className="bg-white p-6 rounded-lg shadow-lg">
-            <h2 className="text-xl font-semibold text-gray-800">New Orders</h2>
-            <p className="text-3xl font-bold text-blue-600 mt-4">134</p>
-            <p className="text-sm text-gray-500 mt-2">+8% from last month</p>
+            <h2 className="text-xl font-semibold text-gray-800">
+              Total Orders
+            </h2>
+            <p className="text-3xl font-bold text-blue-600 mt-4">
+              {totalOrder}
+            </p>
           </div>
 
           <div className="bg-white p-6 rounded-lg shadow-lg">
             <h2 className="text-xl font-semibold text-gray-800">
               Active Products
             </h2>
-            <p className="text-3xl font-bold text-blue-600 mt-4">56</p>
-            <p className="text-sm text-gray-500 mt-2">+5% from last month</p>
+            <p className="text-3xl font-bold text-blue-600 mt-4">{count}</p>
           </div>
 
           <div className="bg-white p-6 rounded-lg shadow-lg">
             <h2 className="text-xl font-semibold text-gray-800">
               New Customers
             </h2>
-            <p className="text-3xl font-bold text-blue-600 mt-4">32</p>
-            <p className="text-sm text-gray-500 mt-2">+18% from last month</p>
+            <p className="text-3xl font-bold text-blue-600 mt-4">
+              {totalBuyer}
+            </p>
           </div>
         </div>
 
@@ -101,11 +226,8 @@ const DashboardPage = () => {
           <h2 className="text-2xl font-semibold text-gray-800 mb-4">
             Sales Overview
           </h2>
-          <div className="w-full h-64 bg-gray-100 rounded-lg">
-            {/* Placeholder for Chart */}
-            <p className="text-gray-500 flex items-center justify-center h-full">
-              [Insert Chart Here]
-            </p>
+          <div className="w-full h-64">
+            <Pie data={chartData} />
           </div>
         </div>
 
@@ -115,24 +237,19 @@ const DashboardPage = () => {
             Recent Activities
           </h2>
           <ul className="space-y-4">
-            <li className="flex items-center justify-between">
-              <p className="text-gray-700">New order #12345 from John Doe</p>
-              <span className="text-sm text-gray-500">5 mins ago</span>
-            </li>
-            <li className="flex items-center justify-between">
-              <p className="text-gray-700">
-                Product "Wireless Headphones" added
-              </p>
-              <span className="text-sm text-gray-500">30 mins ago</span>
-            </li>
-            <li className="flex items-center justify-between">
-              <p className="text-gray-700">Payment of $120 received</p>
-              <span className="text-sm text-gray-500">1 hour ago</span>
-            </li>
-            <li className="flex items-center justify-between">
-              <p className="text-gray-700">Customer "Jane Smith" registered</p>
-              <span className="text-sm text-gray-500">2 hours ago</span>
-            </li>
+            {orders.length > 0 ? (
+              orders.map((order, index) => (
+                <li key={index} className="flex items-center justify-between">
+                  <p className="text-gray-700">
+                    New order from {order.buyer_name}
+                  </p>
+                </li>
+              ))
+            ) : (
+              <li>
+                <p className="text-gray-700">No recent activities</p>
+              </li>
+            )}
           </ul>
         </div>
       </div>

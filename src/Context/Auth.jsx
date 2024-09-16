@@ -70,7 +70,6 @@ export const AuthProvider = ({ children }) => {
 
     if (storedSeller) {
       setSeller(JSON.parse(storedSeller));
-      // Ensure parsing and setting is done correctly
     }
   }, []);
 
