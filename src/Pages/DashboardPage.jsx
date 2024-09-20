@@ -91,17 +91,17 @@ const DashboardPage = () => {
         const labels = Object.keys(categoryPriceMap);
         const data = Object.values(categoryPriceMap);
 
-        // Generate colors for chart
+        // Generate brighter and more vibrant colors for chart
         const backgroundColor = labels.map(
           (_, index) =>
-            `rgba(${(index * 50) % 255}, ${(index * 100) % 255}, ${
-              (index * 150) % 255
-            }, 0.2)`
+            `rgba(${(index * 75) % 255}, ${(index * 125) % 255}, ${
+              (index * 180) % 255
+            }, 0.7)`
         );
         const borderColor = labels.map(
           (_, index) =>
-            `rgba(${(index * 50) % 255}, ${(index * 100) % 255}, ${
-              (index * 150) % 255
+            `rgba(${(index * 75) % 255}, ${(index * 125) % 255}, ${
+              (index * 180) % 255
             }, 1)`
         );
 
@@ -113,7 +113,7 @@ const DashboardPage = () => {
               data,
               backgroundColor,
               borderColor,
-              borderWidth: 1,
+              borderWidth: 2, // Increase border width for better visibility
             },
           ],
         });

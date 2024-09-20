@@ -15,6 +15,11 @@ const Header = () => {
           {user && (
             <span className="text-warning">Logged in as {user.name}</span>
           )}
+          <Link to="/yourProducts">
+            <button className="h-10 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded transition duration-300">
+              Your Products
+            </button>
+          </Link>
           <Link to="/cart">
             <button className="h-10 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded transition duration-300">
               CartItem

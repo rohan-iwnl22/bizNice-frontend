@@ -1,6 +1,20 @@
-import React, { useContext } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import toast from "react-hot-toast";
+import * as tf from "@tensorflow/tfjs";
 import { Auth } from "../Context/Auth";
+
+// Define class labels for the prediction
+const classNames = [
+  "BABY PRODUCTS",
+  "BEAUTY HEALTH",
+  "CLOTHING ACCESSORIES JEWELLERY",
+  "ELECTRONICS",
+  "GROCERY",
+  "HOBBY ARTS AND STATIONARY",
+  "HOME KITCHEN TOOLS",
+  "PET SUPPLIES",
+  "SPORTS OUTDOOR",
+];
 
 const PostProduct = () => {
   const {
@@ -11,6 +25,62 @@ const PostProduct = () => {
     handleSubmit,
     isuploading,
   } = useContext(Auth);
+
+  const [model, setModel] = useState(null);
+  const [predictedCategory, setPredictedCategory] = useState("");
+
+  // Load the model when the component mounts
+  useEffect(() => {
+    const loadModel = async () => {
+      try {
+        const loadedModel = await tf.loadLayersModel("Models/json/model.json");
+        setModel(loadedModel);
+      } catch (error) {
+        console.error("Failed to load model:", error);
+      }
+    };
+    loadModel();
+  }, []);
+
+  // Function to preprocess the image
+  const preprocessImage = (imageElement) => {
+    return tf.tidy(() => {
+      const tensor = tf.browser
+        .fromPixels(imageElement)
+        .resizeNearestNeighbor([224, 224])
+        .toFloat()
+        .div(255.0)
+        .expandDims();
+      return tensor;
+    });
+  };
+
+  // Handle image upload and prediction
+  const handleImageUploadAndPredict = (event) => {
+    handleImageChange(event); // Call existing image change handler
+
+    const file = event.target.files[0]; // Get the first file
+    if (file && model) {
+      const imageURL = URL.createObjectURL(file);
+
+      // Create an image element to make prediction
+      const img = new Image();
+      img.src = imageURL;
+      img.onload = async () => {
+        const processedImage = preprocessImage(img);
+        const predictions = await model.predict(processedImage).data();
+        const topPrediction = Array.from(predictions)
+          .map((p, i) => ({ probability: p, className: i }))
+          .sort((a, b) => b.probability - a.probability)[0];
+
+        const predictedCategory =
+          classNames[topPrediction.className] ||
+          `Class ${topPrediction.className}`;
+        setPredictedCategory(predictedCategory);
+        tf.dispose(processedImage);
+      };
+    }
+  };
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
@@ -36,6 +106,11 @@ const PostProduct = () => {
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-700">
               Category
+              {predictedCategory && (
+                <span className="ml-2 text-blue-600 font-medium">
+                  (Predicted: {predictedCategory})
+                </span>
+              )}
             </label>
             <input
               type="text"
@@ -103,7 +178,7 @@ const PostProduct = () => {
             <input
               type="file"
               multiple
-              onChange={handleImageChange}
+              onChange={handleImageUploadAndPredict} // Update to handle image upload and prediction
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
               accept="image/*"
               required

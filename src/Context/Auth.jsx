@@ -43,13 +43,20 @@ export const AuthProvider = ({ children }) => {
         }
 
         toast.success(response.data.message);
-        localStorage.setItem("User", JSON.stringify(response.data));
-        setUser(response.data);
-        navigate("/");
+        // localStorage.setItem("User", JSON.stringify(response.data));
+        // setUser(response.data);
+        navigate("/login");
       } catch (error) {
         setIsRegisterLoading(false);
-        toast.error("Registration failed!");
-        setRegistrationError("Registration failed!");
+
+        // Check if error has a response and display relevant message
+        const errorMessage =
+          error.response && error.response.data && error.response.data.message
+            ? error.response.data.message
+            : "Registration failed!";
+
+        toast.error(errorMessage);
+        setRegistrationError(errorMessage);
       }
     },
     [registerInfo, navigate]
@@ -123,7 +130,15 @@ export const AuthProvider = ({ children }) => {
         navigate("/");
       } catch (error) {
         setIsLoginLoading(false);
-        toast.error("An error occurred. Please try again.");
+
+        // Check if error has a response and display relevant message
+        const errorMessage =
+          error.response && error.response.data && error.response.data.message
+            ? error.response.data.message
+            : "An error occurred. Please try again.";
+
+        toast.error(errorMessage);
+        setLoginError(errorMessage);
         console.error("Login error:", error);
       }
     },
