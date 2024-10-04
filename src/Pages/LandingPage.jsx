@@ -1,18 +1,22 @@
 import { useContext, useEffect, useState } from "react";
 import axios from "axios";
 import Slider from "react-slick";
-import { useCart } from "../Context/CartContext";
+import { useCart } from "../Context/CartContext"; // Import the Cart context
 import toast from "react-hot-toast";
 import { Auth } from "../Context/Auth";
+import { Link } from "react-router-dom";
 
 const ProductList = () => {
   const { user } = useContext(Auth);
+  const { addToCart } = useCart(); // Use the addToCart function from the Cart context
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { addToCart } = useCart();
+  const [sortOrder, setSortOrder] = useState("lowToHigh"); // New state for sorting
+  const [bestSelling, setBestSelling] = useState([]);
+  const [isBest, setIsBest] = useState(false);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -42,6 +46,18 @@ const ProductList = () => {
     fetchProducts();
   }, []);
 
+  const fetchBestSelling = async () => {
+    try {
+      const response = await axios.get(
+        "http://localhost:3030/api/product/bestSelling"
+      );
+      setBestSelling(response.data.products || []); // Fetch best-selling products
+      setIsBest(true); // Toggle to best-selling mode
+    } catch (error) {
+      console.error("Error fetching best-selling products:", error.message);
+    }
+  };
+
   const handleClick = (product) => {
     if (!user) {
       return toast.error("Please Login First");
@@ -51,11 +67,20 @@ const ProductList = () => {
         name: product.name,
         price: parseFloat(product.price),
       });
+      toast.success(`${product.name} added to cart!`);
     }
   };
 
   const handleCategoryChange = (e) => {
     setSelectedCategory(e.target.value);
+  };
+
+  const handleSortOrderChange = (e) => {
+    setSortOrder(e.target.value);
+  };
+
+  const handleDefaultProducts = () => {
+    setIsBest(false);
   };
 
   if (loading) return <div className="text-center text-2xl">Loading...</div>;
@@ -83,21 +108,43 @@ const ProductList = () => {
           (product) => product.category_name === selectedCategory
         );
 
+  // Sort products based on selected sort order
+  const sortedProducts = filteredProducts.sort((a, b) => {
+    if (sortOrder === "lowToHigh") {
+      return a.price - b.price;
+    } else {
+      return b.price - a.price;
+    }
+  });
+
+  const displayedProducts = isBest ? bestSelling : sortedProducts; // Display either best-selling or sorted products
+
   return (
-    <div className="min-h-screen bg-gray-100 py-10">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center mb-10">
+    <div className="min-h-screen bg-gradient-to-r from-indigo-200 via-purple-200 to-pink-200 py-10">
+      {/* Hero Section */}
+      <div className="container mx-auto px-4 mb-10">
+        <div className="text-center mb-10">
           <h1
-            className="text-4xl font-extrabold text-gray-800 font-serif"
+            className="text-5xl font-bold text-gray-800 mb-6"
             style={{ fontFamily: "Roboto Condensed" }}
           >
-            Our Products
+            Welcome to BizNiche
           </h1>
-          <div>
+          <p className="text-lg text-gray-600 mb-6">
+            Discover our wide range of exclusive products, hand-picked just for
+            you.
+          </p>
+          <button className="bg-indigo-500 hover:bg-indigo-600 text-white py-3 px-8 rounded-lg font-semibold shadow-lg">
+            Shop Now
+          </button>
+        </div>
+
+        <div className="flex justify-center items-center mb-10">
+          <div className="relative inline-block">
             <select
               value={selectedCategory}
               onChange={handleCategoryChange}
-              className="bg-white border border-gray-300 text-gray-800 py-2 px-4 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-white border border-gray-300 text-gray-800 py-2 px-4 rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               {categories.map((category, index) => (
                 <option key={index} value={category}>
@@ -106,19 +153,43 @@ const ProductList = () => {
               ))}
             </select>
           </div>
-        </div>
 
+          {/* Sort Order Section */}
+          <div className="relative inline-block ml-4">
+            <select
+              value={sortOrder}
+              onChange={handleSortOrderChange}
+              className="bg-white border border-gray-300 text-gray-800 py-2 px-4 rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="lowToHigh">Price: Low to High</option>
+              <option value="highToLow">Price: High to Low</option>
+            </select>
+          </div>
+
+          {/* Toggle Best Selling Section */}
+          <div className="relative inline-block ml-4">
+            <button
+              onClick={isBest ? handleDefaultProducts : fetchBestSelling} // Toggle between best-selling and default products
+              className="bg-white border border-gray-300 text-gray-800 py-2 px-4 rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {isBest ? "Show All Products" : "Best Selling Products"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4">
         <div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"
           style={{ fontFamily: "Nunito" }}
         >
-          {filteredProducts.map((product) => {
+          {displayedProducts.map((product) => {
             const imageUrls = product.image_url.split(",");
 
             return (
               <div
                 key={product.product_id}
-                className="bg-white rounded-lg shadow-lg overflow-hidden"
+                className="bg-white rounded-lg shadow-lg overflow-hidden transform transition duration-300 hover:scale-105"
               >
                 {imageUrls.length > 1 ? (
                   <Slider {...sliderSettings}>
@@ -145,15 +216,15 @@ const ProductList = () => {
                   </h2>
                   <p className="text-gray-600 mb-4">{product.description}</p>
                   <p className="text-lg font-bold text-gray-800 mb-2">
-                    ${product.price}
+                    ₹{product.price}
                   </p>
                   <p className="text-gray-600 mb-4">Stock: {product.stock}</p>
                   <p className="text-gray-600 mb-4">
                     Category: {product.category_name}
                   </p>
                   <button
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded"
-                    onClick={() => handleClick(product)} // Pass product to handleClick
+                    className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-lg font-semibold shadow-lg transition duration-300 ease-in-out transform hover:scale-105"
+                    onClick={() => handleClick(product)}
                   >
                     Add to Cart
                   </button>

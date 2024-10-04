@@ -291,15 +291,14 @@ const CartPage = () => {
         <div className="space-y-2 mt-4">
           <div className="flex justify-between">
             <p>Subtotal:</p>
-            <p>${total.toFixed(2)}</p>
+            <p>₹{total.toFixed(2)}</p>
           </div>
           <div className="flex justify-between">
             <p>Shipping:</p>
             <p>Free</p>
           </div>
           <div className="flex justify-between font-bold text-lg">
-            <p>Total:</p>
-            <p>${total.toFixed(2)}</p>
+            <p>Total:</p>x<p>₹{total.toFixed(2)}</p>
           </div>
         </div>
 

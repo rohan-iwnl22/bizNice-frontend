@@ -3,21 +3,21 @@ import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
 import "./index.css";
 import { AuthProvider } from "./Context/Auth.jsx";
-import { BrowserRouter as Router } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { CartProvider } from "./Context/CartContext.jsx";
+import { BrowserRouter as Router } from "react-router-dom";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <Router>
-      <CartProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <CartProvider>
           <App />
           <Toaster />
-        </AuthProvider>
-      </CartProvider>
+        </CartProvider>
+      </AuthProvider>
     </Router>
   </StrictMode>
 );

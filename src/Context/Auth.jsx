@@ -43,20 +43,13 @@ export const AuthProvider = ({ children }) => {
         }
 
         toast.success(response.data.message);
-        // localStorage.setItem("User", JSON.stringify(response.data));
-        // setUser(response.data);
-        navigate("/login");
+        localStorage.setItem("User", JSON.stringify(response.data));
+        setUser(response.data);
+        navigate("/landing");
       } catch (error) {
         setIsRegisterLoading(false);
-
-        // Check if error has a response and display relevant message
-        const errorMessage =
-          error.response && error.response.data && error.response.data.message
-            ? error.response.data.message
-            : "Registration failed!";
-
-        toast.error(errorMessage);
-        setRegistrationError(errorMessage);
+        toast.error("Registration failed!");
+        setRegistrationError("Registration failed!");
       }
     },
     [registerInfo, navigate]
@@ -127,18 +120,10 @@ export const AuthProvider = ({ children }) => {
           setSeller(null);
         }
 
-        navigate("/");
+        navigate("/landing");
       } catch (error) {
         setIsLoginLoading(false);
-
-        // Check if error has a response and display relevant message
-        const errorMessage =
-          error.response && error.response.data && error.response.data.message
-            ? error.response.data.message
-            : "An error occurred. Please try again.";
-
-        toast.error(errorMessage);
-        setLoginError(errorMessage);
+        toast.error("An error occurred. Please try again.");
         console.error("Login error:", error);
       }
     },
@@ -151,7 +136,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setSeller(null);
     toast.success("Logged Out Successfully");
-    navigate("/"); // Redirect to home page or login page
+    navigate("/landing"); // Redirect to home page or login page
   }, [navigate]);
 
   const [sellerInfo, setSellerInfo] = useState({

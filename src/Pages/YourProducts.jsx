@@ -5,10 +5,12 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const YourProducts = () => {
   const [products, setProducts] = useState([]);
-  const [recommendedProducts, setRecommendedProducts] = useState([]);
+  const [recommendations, setRecommendations] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showPopup, setShowPopup] = useState(false); // Popup state
+  const [showPopup, setShowPopup] = useState(false);
+  const [currentProductId, setCurrentProductId] = useState(null); // To track which product's recommendations to show
+
   const [successToastShown, setSuccessToastShown] = useState(false);
   const [errorToastShown, setErrorToastShown] = useState(false);
   const [emptyToastShown, setEmptyToastShown] = useState(false);
@@ -39,7 +41,11 @@ const YourProducts = () => {
             toast.success("Orders fetched successfully.");
             setSuccessToastShown(true);
           }
-          fetchRecommendedProducts(response.data.your_orders);
+
+          // Fetch recommendations for each product
+          response.data.your_orders.forEach((order) =>
+            fetchRecommendedProducts(order)
+          );
         }
       } catch (error) {
         setError(error.message);
@@ -52,31 +58,28 @@ const YourProducts = () => {
       }
     };
 
-    const fetchRecommendedProducts = async (orders) => {
+    const fetchRecommendedProducts = async (order) => {
       try {
         const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-        // Prepare product names from orders to send to the API
-        const productNames = orders
-          .map((order) => order.product_name)
-          .join(", ");
         const result = await model.generateContent(
-          `Recommend products similar to: ${productNames}`
+          `Recommend products similar to: ${order.product_name}`
         );
 
         const response = await result.response;
         const text = await response.text();
 
-        console.log("Raw Response from Gemini API:", text); // Log raw response for debugging
-
         // Clean up the response: strip `*`, `**`, and empty lines
-        const recommendations = text
-          .split("\n") // Split by newlines
-          .map((item) => item.replace(/[*]|\s*\*\*/g, "").trim()) // Remove `*` and `**`
-          .filter((item) => item); // Filter out empty strings
+        const recommendationsForProduct = text
+          .split("\n")
+          .map((item) => item.replace(/[*]|\s*\*\*/g, "").trim())
+          .filter((item) => item)
+          .slice(0, 5); // Limit to top 5 recommendations
 
-        setRecommendedProducts(recommendations);
-        setShowPopup(true); // Show popup when recommendations are available
+        // Store recommendations for this specific product
+        setRecommendations((prev) => ({
+          ...prev,
+          [order.order_id]: recommendationsForProduct,
+        }));
       } catch (error) {
         console.log("Error fetching recommendations", error.message);
       }
@@ -85,8 +88,9 @@ const YourProducts = () => {
     fetchOrders();
   }, [successToastShown, errorToastShown, emptyToastShown]);
 
-  const handlePopupToggle = () => {
-    setShowPopup((prevShowPopup) => !prevShowPopup); // Toggle the popup state
+  const handlePopupToggle = (orderId) => {
+    setCurrentProductId(orderId);
+    setShowPopup((prevShowPopup) => !prevShowPopup);
   };
 
   if (loading) return <div className="text-center text-2xl">Loading...</div>;
@@ -122,7 +126,7 @@ const YourProducts = () => {
                 <img
                   src={order.product_image_url}
                   alt={order.product_name}
-                  className="w-full h-64 object-cover"
+                  className="w-full h-64 object-cover transition-transform hover:scale-105"
                 />
                 <div className="p-6">
                   <h2 className="text-xl font-semibold text-gray-800 mb-2">
@@ -135,6 +139,13 @@ const YourProducts = () => {
                     Quantity: {order.quantity}
                   </p>
                   <p className="text-gray-600 mb-4">Status: {order.status}</p>
+
+                  <button
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-all"
+                    onClick={() => handlePopupToggle(order.order_id)}
+                  >
+                    View Recommendations
+                  </button>
                 </div>
               </div>
             ))
@@ -146,34 +157,31 @@ const YourProducts = () => {
         </div>
 
         {/* Popup for Recommended Products */}
-        {showPopup && (
+        {showPopup && currentProductId && (
           <div
-            className="fixed bottom-10 right-10 bg-white rounded-lg shadow-lg p-4 w-80 z-50"
-            style={{ maxHeight: "300px", overflowY: "auto" }} // Scrollable style
+            className="fixed bottom-10 right-10 bg-white rounded-lg shadow-lg p-4 w-80 z-50 transition-all duration-300 ease-in-out"
+            style={{ maxHeight: "300px", overflowY: "auto" }}
           >
             <h2 className="text-lg font-bold mb-2">Recommended Products</h2>
             <div className="space-y-2">
-              {recommendedProducts.map((product, index) => (
-                <div key={index} className="text-gray-800">
-                  {product}
-                </div>
-              ))}
+              {recommendations[currentProductId] &&
+              recommendations[currentProductId].length > 0 ? (
+                recommendations[currentProductId].map((product, index) => (
+                  <div key={index} className="text-gray-800">
+                    {product}
+                  </div>
+                ))
+              ) : (
+                <p>No recommendations available for this product.</p>
+              )}
             </div>
             <button
-              className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
-              onClick={handlePopupToggle} // Toggle popup visibility
+              className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-all"
+              onClick={handlePopupToggle}
             >
               Close
             </button>
           </div>
-        )}
-        {!showPopup && (
-          <button
-            className="fixed bottom-10 right-10 bg-blue-500 text-white px-4 py-2 rounded"
-            onClick={handlePopupToggle} // Toggle popup visibility
-          >
-            Open Recommendations
-          </button>
         )}
       </div>
     </div>
